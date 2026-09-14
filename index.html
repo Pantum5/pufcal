@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Վաճառքի հաշվարկ</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+        background: #f2f2f2;
+        color: #222;
+    }
+
+    .container {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .top-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    button {
+        border: none;
+        border-radius: 8px;
+        padding: 12px 18px;
+        cursor: pointer;
+        font-size: 15px;
+    }
+
+    .products-btn {
+        background: #333;
+        color: white;
+        flex: 1;
+    }
+
+    .calculate-btn {
+        width: 100%;
+        background: #1677ff;
+        color: white;
+        font-size: 17px;
+        margin-top: 10px;
+    }
+
+    textarea {
+        width: 100%;
+        min-height: 220px;
+        resize: vertical;
+        padding: 15px;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        font-size: 16px;
+        outline: none;
+        background: white;
+    }
+
+    textarea:focus,
+    input:focus {
+        border-color: #1677ff;
+    }
+
+    .result {
+        margin-top: 20px;
+    }
+
+    .sale-result {
+        background: white;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-left: 4px solid #1677ff;
+    }
+
+    .sale-result div {
+        margin: 5px 0;
+    }
+
+    .total {
+        background: #222;
+        color: white;
+        border-radius: 10px;
+        padding: 18px;
+        margin-top: 15px;
+        font-size: 17px;
+    }
+
+    .error {
+        background: #ffe5e5;
+        border-left: 4px solid #e00000;
+    }
+
+    /* Modal */
+
+    .modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 1000;
+        padding: 20px;
+    }
+
+    .modal-content {
+        background: white;
+        max-width: 600px;
+        margin: 40px auto;
+        border-radius: 12px;
+        padding: 20px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+    }
+
+    .close-btn {
+        background: #eee;
+        font-size: 20px;
+        padding: 5px 12px;
+    }
+
+    label {
+        display: block;
+        margin-top: 12px;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 16px;
+        outline: none;
+    }
+
+    .save-btn {
+        width: 100%;
+        margin-top: 15px;
+        background: #19a463;
+        color: white;
+    }
+
+    .cancel-edit-btn {
+        width: 100%;
+        margin-top: 8px;
+        background: #777;
+        color: white;
+        display: none;
+    }
+
+    .products-list {
+        margin-top: 25px;
+    }
+
+    .product-item {
+        background: #f7f7f7;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .product-info {
+        margin-bottom: 10px;
+    }
+
+    .product-name {
+        font-weight: bold;
+        font-size: 17px;
+    }
+
+    .product-cost {
+        color: #555;
+        margin-top: 4px;
+    }
+
+    .product-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .edit-btn {
+        background: #1677ff;
+        color: white;
+        flex: 1;
+    }
+
+    .delete-btn {
+        background: #e53935;
+        color: white;
+        flex: 1;
+    }
+
+    .empty {
+        text-align: center;
+        color: #777;
+        padding: 20px;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Վաճառքի հաշվարկ</h1>
+
+    <div class="top-buttons">
+        <button class="products-btn" onclick="openProducts()">
+            Ապրանքներ
+        </button>
+    </div>
+
+    <textarea id="salesInput" placeholder="Օրինակ՝
+
+Elfbar 20k 6000
+Elfbar 50k 20000
+3xElfbar 20k 13000"></textarea>
+
+    <button class="calculate-btn" onclick="calculateSales()">
+        Հաշվել
+    </button>
+
+    <div id="result" class="result"></div>
+
+</div>
+
+
+<!-- Ապրանքների Modal -->
+
+<div id="productsModal" class="modal">
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+            <h2>Ապրանքներ</h2>
+
+            <button class="close-btn" onclick="closeProducts()">
+                ×
+            </button>
+        </div>
+
+        <label>Ապրանքի անուն</label>
+
+        <input
+            type="text"
+            id="productName"
+            placeholder="Օր․ Elfbar 20k"
+        >
+
+        <label>Ինքնարժեք</label>
+
+        <input
+            type="text"
+            id="productCost"
+            placeholder="Օր․ 2000"
+        >
+
+        <button class="save-btn" onclick="saveProduct()">
+            Պահպանել
+        </button>
+
+        <button
+            id="cancelEditBtn"
+            class="cancel-edit-btn"
+            onclick="cancelEdit()"
+        >
+            Չեղարկել փոփոխությունը
+        </button>
+
+        <div id="productsList" class="products-list"></div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+    /* =========================
+       ԱՊՐԱՆՔՆԵՐ
+    ========================= */
+
+    let products = JSON.parse(
+        localStorage.getItem("myProducts") || "[]"
+    );
+
+    let editingIndex = -1;
+
+
+    function openProducts() {
+        document.getElementById("productsModal").style.display = "block";
+        renderProducts();
+    }
+
+
+    function closeProducts() {
+        document.getElementById("productsModal").style.display = "none";
+        cancelEdit();
+    }
+
+
+    function saveProductsToStorage() {
+        localStorage.setItem(
+            "myProducts",
+            JSON.stringify(products)
+        );
+    }
+
+
+    function parseMoney(value) {
+        return Number(
+            String(value).replace(/[^\d]/g, "")
+        );
+    }
+
+
+    function saveProduct() {
+
+        const nameInput =
+            document.getElementById("productName");
+
+        const costInput =
+            document.getElementById("productCost");
+
+        const name = nameInput.value.trim();
+
+        const cost = parseMoney(costInput.value);
+
+        if (!name) {
+            alert("Գրիր ապրանքի անունը։");
+            return;
+        }
+
+        if (!cost || cost <= 0) {
+            alert("Գրիր ճիշտ ինքնարժեք։");
+            return;
+        }
+
+
+        /* Խմբագրում */
+
+        if (editingIndex !== -1) {
+
+            products[editingIndex] = {
+                name: name,
+                cost: cost
+            };
+
+            editingIndex = -1;
+
+        }
+
+        /* Նոր ապրանք */
+
+        else {
+
+            const existingIndex =
+                products.findIndex(
+                    product =>
+                        normalizeName(product.name) ===
+                        normalizeName(name)
+                );
+
+            if (existingIndex !== -1) {
+
+                products[existingIndex].cost = cost;
+
+            } else {
+
+                products.push({
+                    name: name,
+                    cost: cost
+                });
+
+            }
+        }
+
+
+        saveProductsToStorage();
+
+        nameInput.value = "";
+        costInput.value = "";
+
+        document.getElementById("cancelEditBtn").style.display = "none";
+
+        document.querySelector(".save-btn").textContent =
+            "Պահպանել";
+
+        renderProducts();
+    }
+
+
+    function renderProducts() {
+
+        const list =
+            document.getElementById("productsList");
+
+        if (products.length === 0) {
+
+            list.innerHTML =
+                '<div class="empty">Դեռ ապրանք չկա։</div>';
+
+            return;
+        }
+
+
+        list.innerHTML = products.map((product, index) => {
+
+            return `
+                <div class="product-item">
+
+                    <div class="product-info">
+
+                        <div class="product-name">
+                            ${escapeHtml(product.name)}
+                        </div>
+
+                        <div class="product-cost">
+                            Ինքնարժեք՝ ${formatMoney(product.cost)} ֏
+                        </div>
+
+                    </div>
+
+                    <div class="product-actions">
+
+                        <button
+                            class="edit-btn"
+                            onclick="editProduct(${index})"
+                        >
+                            Փոխել
+                        </button>
+
+                        <button
+                            class="delete-btn"
+                            onclick="deleteProduct(${index})"
+                        >
+                            Ջնջել
+                        </button>
+
+                    </div>
+
+                </div>
+            `;
+
+        }).join("");
+    }
+
+
+    function editProduct(index) {
+
+        const product = products[index];
+
+        document.getElementById("productName").value =
+            product.name;
+
+        document.getElementById("productCost").value =
+            product.cost;
+
+        editingIndex = index;
+
+        document.getElementById("cancelEditBtn").style.display =
+            "block";
+
+        document.querySelector(".save-btn").textContent =
+            "Պահպանել փոփոխությունը";
+
+        document.getElementById("productName").focus();
+    }
+
+
+    function cancelEdit() {
+
+        editingIndex = -1;
+
+        document.getElementById("productName").value = "";
+        document.getElementById("productCost").value = "";
+
+        document.getElementById("cancelEditBtn").style.display =
+            "none";
+
+        document.querySelector(".save-btn").textContent =
+            "Պահպանել";
+    }
+
+
+    function deleteProduct(index) {
+
+        const product = products[index];
+
+        const confirmed = confirm(
+            `Ջնջե՞լ «${product.name}»-ը։`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        products.splice(index, 1);
+
+        saveProductsToStorage();
+
+        if (editingIndex === index) {
+            cancelEdit();
+        }
+
+        renderProducts();
+    }
+
+
+    /* =========================
+       ԱՆՈՒՆՆԵՐԻ ՀԱՄԵՄԱՏՈՒՄ
+    ========================= */
+
+    function normalizeName(name) {
+
+        return String(name)
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, " ");
+    }
+
+
+    function findProduct(name) {
+
+        const normalized =
+            normalizeName(name);
+
+        return products.find(product =>
+            normalizeName(product.name) === normalized
+        );
+    }
+
+
+    /* =========================
+       ՎԱՃԱՌՔԻ ՏՈՂԻ ՎԵՐԼՈՒԾՈՒՄ
+    ========================= */
+
+    function parseSaleLine(line) {
+
+        /*
+            Օրինակներ՝
+
+            Elfbar 20k 6000
+
+            Elfbar 50k 20000
+
+            3xElfbar 20k 13000
+        */
+
+
+        const match =
+            line.match(/^\s*(.*?)\s+([\d\s.,]+)\s*$/);
+
+
+        if (!match) {
+            return null;
+        }
+
+
+        let productText =
+            match[1].trim();
+
+
+        const salePrice =
+            parseMoney(match[2]);
+
+
+        if (!productText || salePrice <= 0) {
+            return null;
+        }
+
+
+        /*
+            Քանակ
+
+            3xElfbar 20k 13000
+
+            quantity = 3
+            product = Elfbar 20k
+        */
+
+        const quantityMatch =
+            productText.match(
+                /^\s*(\d+)\s*x\s*(.+)$/i
+            );
+
+
+        if (quantityMatch) {
+
+            return {
+
+                quantity:
+                    Number(quantityMatch[1]),
+
+                productName:
+                    quantityMatch[2].trim(),
+
+                salePrice:
+                    salePrice
+
+            };
+
+        }
+
+
+        return {
+
+            quantity: 1,
+
+            productName:
+                productText,
+
+            salePrice:
+                salePrice
+
+        };
+    }
+
+
+    /* =========================
+       ՀԱՇՎԱՐԿ
+    ========================= */
+
+    function calculateSales() {
+
+        const input =
+            document.getElementById("salesInput").value;
+
+        const result =
+            document.getElementById("result");
+
+
+        result.innerHTML = "";
+
+
+        const lines =
+            input
+                .split("\n")
+                .map(line => line.trim())
+                .filter(line => line !== "");
+
+
+        if (lines.length === 0) {
+
+            result.innerHTML = `
+                <div class="sale-result error">
+                    Գրի՛ր վաճառքները։
+                </div>
+            `;
+
+            return;
+        }
+
+
+        let totalProfit = 0;
+
+        let totalMyPart = 0;
+
+        let html = "";
+
+
+        lines.forEach(line => {
+
+            const sale =
+                parseSaleLine(line);
+
+
+            /*
+                Տողը չի հասկացվել
+            */
+
+            if (!sale) {
+
+                html += `
+                    <div class="sale-result error">
+
+                        <strong>
+                            Այս տողը չհասկացա
+                        </strong>
+
+                        <div>
+                            ${escapeHtml(line)}
+                        </div>
+
+                    </div>
+                `;
+
+                return;
+            }
+
+
+            /*
+                Գտնում ենք ապրանքը
+            */
+
+            const product =
+                findProduct(sale.productName);
+
+
+            if (!product) {
+
+                html += `
+                    <div class="sale-result error">
+
+                        <strong>
+                            Ապրանքը գրանցված չէ
+                        </strong>
+
+                        <div>
+                            ${escapeHtml(sale.productName)}
+                        </div>
+
+                        <div>
+                            Վաճառքի գին՝
+                            ${formatMoney(sale.salePrice)} ֏
+                        </div>
+
+                    </div>
+                `;
+
+                return;
+            }
+
+
+            /*
+                Հաշվարկ
+            */
+
+            const totalCost =
+                product.cost * sale.quantity;
+
+
+            const profit =
+                sale.salePrice - totalCost;
+
+
+            const myPart =
+                profit / 2;
+
+
+            totalProfit += profit;
+
+            totalMyPart += myPart;
+
+
+            html += `
+                <div class="sale-result">
+
+                    <div>
+                        <strong>
+                            ${sale.quantity > 1
+                                ? sale.quantity + " × "
+                                : ""
+                            }${escapeHtml(product.name)}
+                        </strong>
+                    </div>
+
+                    <div>
+                        Վաճառք՝
+                        ${formatMoney(sale.salePrice)} ֏
+                    </div>
+
+                    <div>
+                        Ինքնարժեք՝
+                        ${formatMoney(totalCost)} ֏
+                    </div>
+
+                    <div>
+                        Մաքուր շահույթ՝
+                        <strong>
+                            ${formatMoney(profit)} ֏
+                        </strong>
+                    </div>
+
+                    <div>
+                        Քո կեսը՝
+                        <strong>
+                            ${formatMoney(myPart)} ֏
+                        </strong>
+                    </div>
+
+                </div>
+            `;
+        });
+
+
+        /*
+            Ընդհանուր արդյունք
+        */
+
+        html += `
+            <div class="total">
+
+                <div>
+                    Ընդհանուր մաքուր շահույթ՝
+                    <strong>
+                        ${formatMoney(totalProfit)} ֏
+                    </strong>
+                </div>
+
+                <div style="margin-top:10px;">
+                    Քո ընդհանուր կեսը՝
+                    <strong>
+                        ${formatMoney(totalMyPart)} ֏
+                    </strong>
+                </div>
+
+            </div>
+        `;
+
+
+        result.innerHTML = html;
+    }
+
+
+    /* =========================
+       ՕԳՆԱԿԱՆՆԵՐ
+    ========================= */
+
+    function formatMoney(number) {
+
+        return Math.round(number)
+            .toLocaleString("en-US");
+    }
+
+
+    function escapeHtml(text) {
+
+        return String(text)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+
+    /* Modal-ից դուրս սեղմելիս փակել */
+
+    window.onclick = function(event) {
+
+        const modal =
+            document.getElementById("productsModal");
+
+        if (event.target === modal) {
+            closeProducts();
+        }
+    };
+
+</script>
+
+</body>
+</html>
