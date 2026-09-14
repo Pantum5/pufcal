@@ -225,6 +225,12 @@ input {
     color: #777;
     padding: 20px;
 }
+
+.loading {
+    text-align: center;
+    color: #777;
+    padding: 20px;
+}
 </style>
 </head>
 
@@ -300,14 +306,39 @@ Elfbar 50k 20000
             Չեղարկել փոփոխությունը
         </button>
 
-        <div id="productsList" class="products-list"></div>
+        <div id="productsList" class="products-list">
+            <div class="loading">
+                Բեռնում...
+            </div>
+        </div>
 
     </div>
 
 </div>
 
 
+<!-- SUPABASE -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
+
+/* =====================================================
+   SUPABASE
+===================================================== */
+
+const SUPABASE_URL =
+    "https://lklrypbwujwncokdvbpi.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_2rRtfSQmA__E3Z6h8FpyYw_lfNh1S_3";
+
+const supabase =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_PUBLISHABLE_KEY
+    );
+
 
 /* =====================================================
    ՍԿԶԲՆԱԿԱՆ ԱՊՐԱՆՔՆԵՐ
@@ -354,29 +385,106 @@ const defaultProducts = [
 
 
 /* =====================================================
-   LOCALSTORAGE
+   ԱՊՐԱՆՔՆԵՐ
 ===================================================== */
 
-let products;
+let products = [];
 
-const savedProducts = localStorage.getItem("myProducts");
+let editingIndex = -1;
 
-if (savedProducts) {
 
-    products = JSON.parse(savedProducts);
+/* =====================================================
+   ԱՊՐԱՆՔՆԵՐԸ SUPABASE-ԻՑ ԲԵՌՆԵԼ
+===================================================== */
 
-} else {
+async function loadProducts() {
 
-    products = defaultProducts;
+    const list =
+        document.getElementById("productsList");
 
-    localStorage.setItem(
-        "myProducts",
-        JSON.stringify(products)
-    );
+    list.innerHTML = `
+        <div class="loading">
+            Բեռնում...
+        </div>
+    `;
+
+
+    const { data, error } =
+        await supabase
+            .from("products")
+            .select("*")
+            .order("id", { ascending: true });
+
+
+    if (error) {
+
+        console.error(error);
+
+        list.innerHTML = `
+            <div class="sale-result error">
+                Չհաջողվեց բեռնել ապրանքները։
+                <br><br>
+                ${escapeHtml(error.message)}
+            </div>
+        `;
+
+        return;
+    }
+
+
+    products = data || [];
+
+
+    /*
+       Եթե Supabase-ը դատարկ է,
+       ավտոմատ ավելացնում ենք սկզբնական ապրանքները։
+    */
+
+    if (products.length === 0) {
+
+        await insertDefaultProducts();
+
+        return;
+    }
+
+
+    renderProducts();
 }
 
 
-let editingIndex = -1;
+/* =====================================================
+   ՍԿԶԲՆԱԿԱՆ ԱՊՐԱՆՔՆԵՐԸ SUPABASE ՏԵՂԱԴՐԵԼ
+===================================================== */
+
+async function insertDefaultProducts() {
+
+    const { data, error } =
+        await supabase
+            .from("products")
+            .insert(defaultProducts)
+            .select();
+
+
+    if (error) {
+
+        console.error(error);
+
+        document.getElementById("productsList").innerHTML = `
+            <div class="sale-result error">
+                Չհաջողվեց ավելացնել սկզբնական ապրանքները։
+                <br><br>
+                ${escapeHtml(error.message)}
+            </div>
+        `;
+
+        return;
+    }
+
+
+    products = data || [];
+
+    renderProducts();
+}
 
 
 /* =====================================================
@@ -388,7 +496,7 @@ function openProducts() {
     document.getElementById("productsModal").style.display =
         "block";
 
-    renderProducts();
+    loadProducts();
 }
 
 
@@ -402,17 +510,8 @@ function closeProducts() {
 
 
 /* =====================================================
-   ՊԱՀՊԱՆԵԼ
+   ՓՈՂԻ ԿԱՐԴԱԼԸ
 ===================================================== */
-
-function saveProductsToStorage() {
-
-    localStorage.setItem(
-        "myProducts",
-        JSON.stringify(products)
-    );
-}
-
 
 function parseMoney(value) {
 
@@ -422,7 +521,11 @@ function parseMoney(value) {
 }
 
 
-function saveProduct() {
+/* =====================================================
+   ՊԱՀՊԱՆԵԼ ԱՊՐԱՆՔ
+===================================================== */
+
+async function saveProduct() {
 
     const nameInput =
         document.getElementById("productName");
@@ -430,8 +533,10 @@ function saveProduct() {
     const costInput =
         document.getElementById("productCost");
 
+
     const name =
         nameInput.value.trim();
+
 
     const cost =
         parseMoney(costInput.value);
@@ -440,6 +545,7 @@ function saveProduct() {
     if (!name) {
 
         alert("Գրիր ապրանքի անունը։");
+
         return;
     }
 
@@ -447,24 +553,57 @@ function saveProduct() {
     if (!cost || cost <= 0) {
 
         alert("Գրիր ճիշտ ինքնարժեք։");
+
         return;
     }
 
 
-    /* ԽՄԲԱԳՐՈՒՄ */
+    /* =================================================
+       ԽՄԲԱԳՐՈՒՄ
+    ================================================= */
 
     if (editingIndex !== -1) {
 
-        products[editingIndex] = {
-            name: name,
-            cost: cost
-        };
+        const product =
+            products[editingIndex];
+
+
+        const { data, error } =
+            await supabase
+                .from("products")
+                .update({
+                    name: name,
+                    cost: cost
+                })
+                .eq("id", product.id)
+                .select();
+
+
+        if (error) {
+
+            console.error(error);
+
+            alert(
+                "Չհաջողվեց փոխել ապրանքը։\n\n" +
+                error.message
+            );
+
+            return;
+        }
+
+
+        products[editingIndex] =
+            data[0];
+
 
         editingIndex = -1;
 
     }
 
-    /* ՆՈՐ ԱՊՐԱՆՔ */
+
+    /* =================================================
+       ՆՈՐ ԱՊՐԱՆՔ
+    ================================================= */
 
     else {
 
@@ -476,25 +615,84 @@ function saveProduct() {
             );
 
 
+        /*
+           Եթե արդեն կա՝
+           փոխում ենք ինքնարժեքը
+        */
+
         if (existingIndex !== -1) {
 
-            products[existingIndex].cost = cost;
+            const product =
+                products[existingIndex];
 
-        } else {
 
-            products.push({
-                name: name,
-                cost: cost
-            });
+            const { data, error } =
+                await supabase
+                    .from("products")
+                    .update({
+                        cost: cost
+                    })
+                    .eq("id", product.id)
+                    .select();
 
+
+            if (error) {
+
+                console.error(error);
+
+                alert(
+                    "Չհաջողվեց փոխել ապրանքի ինքնարժեքը։\n\n" +
+                    error.message
+                );
+
+                return;
+            }
+
+
+            products[existingIndex] =
+                data[0];
+
+        }
+
+
+        /*
+           Նոր ապրանք
+        */
+
+        else {
+
+            const { data, error } =
+                await supabase
+                    .from("products")
+                    .insert({
+                        name: name,
+                        cost: cost
+                    })
+                    .select();
+
+
+            if (error) {
+
+                console.error(error);
+
+                alert(
+                    "Չհաջողվեց ավելացնել ապրանքը։\n\n" +
+                    error.message
+                );
+
+                return;
+            }
+
+
+            products.push(data[0]);
         }
     }
 
 
-    saveProductsToStorage();
-
+    /* ՄԱՔՐՈՒՄ */
 
     nameInput.value = "";
+
     costInput.value = "";
 
 
@@ -607,7 +805,7 @@ function editProduct(index) {
 
 
 /* =====================================================
-   ՉԵՂԱՐԿԵԼ ՓՈՓՈԽՈՒԹՅՈՒՆԸ
+   ՉԵՂԱՐԿԵԼ
 ===================================================== */
 
 function cancelEdit() {
@@ -633,7 +831,7 @@ function cancelEdit() {
    ՋՆՋԵԼ
 ===================================================== */
 
-function deleteProduct(index) {
+async function deleteProduct(index) {
 
     const product =
         products[index];
@@ -650,10 +848,27 @@ function deleteProduct(index) {
     }
 
 
+    const { error } =
+        await supabase
+            .from("products")
+            .delete()
+            .eq("id", product.id);
+
+
+    if (error) {
+
+        console.error(error);
+
+        alert(
+            "Չհաջողվեց ջնջել ապրանքը։\n\n" +
+            error.message
+        );
+
+        return;
+    }
+
+
     products.splice(index, 1);
-
-
-    saveProductsToStorage();
 
 
     if (editingIndex === index) {
@@ -663,7 +878,6 @@ function deleteProduct(index) {
     } else if (editingIndex > index) {
 
         editingIndex--;
-
     }
 
 
@@ -672,7 +886,7 @@ function deleteProduct(index) {
 
 
 /* =====================================================
-   ԱՊՐԱՆՔԻ ԱՆՎԱՆ ՆՈՐՄԱԼԱՑՈՒՄ
+   ԱՆՎԱՆ ՆՈՐՄԱԼԱՑՈՒՄ
 ===================================================== */
 
 function normalizeName(name) {
@@ -683,6 +897,10 @@ function normalizeName(name) {
         .replace(/\s+/g, " ");
 }
 
+
+/* =====================================================
+   ԳՏՆԵԼ ԱՊՐԱՆՔ
+===================================================== */
 
 function findProduct(name) {
 
@@ -701,17 +919,6 @@ function findProduct(name) {
 ===================================================== */
 
 function parseSaleLine(line) {
-
-    /*
-        Օրինակ՝
-
-        Elfbar 20k 6000
-
-        Elfbar 50k 20000
-
-        3xElfbar 20k 13000
-    */
-
 
     const match =
         line.match(/^\s*(.*?)\s+([\d\s.,]+)\s*$/);
@@ -734,12 +941,6 @@ function parseSaleLine(line) {
         return null;
     }
 
-
-    /*
-        Եթե կա քանակ՝
-
-        3xElfbar 20k 13000
-    */
 
     const quantityMatch =
         productText.match(
@@ -825,8 +1026,6 @@ function calculateSales() {
             parseSaleLine(line);
 
 
-        /* ՏՈՂԸ ՉԻ ՀԱՍԿԱՑՎԵԼ */
-
         if (!sale) {
 
             html += `
@@ -846,8 +1045,6 @@ function calculateSales() {
             return;
         }
 
-
-        /* ԱՊՐԱՆՔԸ ՉԿԱ */
 
         const product =
             findProduct(sale.productName);
@@ -877,8 +1074,6 @@ function calculateSales() {
             return;
         }
 
-
-        /* ՀԱՇՎԱՐԿ */
 
         const totalCost =
             product.cost * sale.quantity;
@@ -939,8 +1134,6 @@ function calculateSales() {
     });
 
 
-    /* ԸՆԴՀԱՆՈՒՐ */
-
     html += `
         <div class="total">
 
@@ -986,6 +1179,13 @@ function escapeHtml(text) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
+
+
+/* =====================================================
+   ԷՋԸ ԲԱՑԵԼՈՒՑ ԱՊՐԱՆՔՆԵՐԸ ԲԵՌՆԵԼ
+===================================================== */
+
+loadProducts();
 
 
 /* =====================================================
