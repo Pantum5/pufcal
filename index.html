@@ -1,8 +1,10 @@
-```html
 <!DOCTYPE html>
 <html lang="hy">
+
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Վաճառքի հաշվարկ</title>
@@ -10,6 +12,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
+
 * {
     box-sizing: border-box;
 }
@@ -22,7 +25,6 @@ body {
 }
 
 .container {
-    width: 100%;
     max-width: 700px;
     margin: 30px auto;
     padding: 20px;
@@ -58,8 +60,12 @@ button {
     border: none;
     border-radius: 8px;
     padding: 11px 15px;
-    cursor: pointer;
     font-size: 15px;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: 0.6;
 }
 
 .calculate-btn {
@@ -71,13 +77,6 @@ button {
     background: #ddd;
 }
 
-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-/* RESULT */
-
 .result {
     margin-top: 20px;
 }
@@ -87,7 +86,6 @@ button:disabled {
     border-radius: 10px;
     padding: 15px;
     margin-bottom: 10px;
-    box-shadow: 0 2px 7px rgba(0,0,0,0.06);
 }
 
 .sale-item strong {
@@ -112,8 +110,6 @@ button:disabled {
     margin-bottom: 10px;
 }
 
-/* MODAL */
-
 .modal {
     display: none;
     position: fixed;
@@ -135,8 +131,8 @@ button:disabled {
 
 .modal-header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
     margin-bottom: 20px;
 }
 
@@ -214,7 +210,6 @@ button:disabled {
 .product-actions {
     display: flex;
     gap: 6px;
-    flex-shrink: 0;
 }
 
 .edit-btn {
@@ -240,8 +235,8 @@ button:disabled {
     }
 
     .product-item {
-        align-items: flex-start;
         flex-direction: column;
+        align-items: flex-start;
     }
 
     .product-actions {
@@ -251,21 +246,29 @@ button:disabled {
     .product-actions button {
         flex: 1;
     }
+
 }
+
 </style>
+
 </head>
 
+
 <body>
+
 
 <div class="container">
 
     <h1>Վաճառքի հաշվարկ</h1>
 
+
     <textarea
         id="salesInput"
         placeholder="Elfbar 20k 6000
 Elfbar 50k 20000
-3xElfbar 20k 13000"></textarea>
+3xElfbar 20k 13000"
+    ></textarea>
+
 
     <div class="main-buttons">
 
@@ -276,6 +279,7 @@ Elfbar 50k 20000
             Հաշվել
         </button>
 
+
         <button
             class="products-btn"
             onclick="openProducts()"
@@ -285,9 +289,11 @@ Elfbar 50k 20000
 
     </div>
 
+
     <div id="result" class="result"></div>
 
 </div>
+
 
 
 <!-- ԱՊՐԱՆՔՆԵՐ -->
@@ -295,6 +301,7 @@ Elfbar 50k 20000
 <div id="productsModal" class="modal">
 
     <div class="modal-content">
+
 
         <div class="modal-header">
 
@@ -354,24 +361,31 @@ Elfbar 50k 20000
         </button>
 
 
-        <div id="productList" class="product-list"></div>
+        <div
+            id="productList"
+            class="product-list"
+        ></div>
+
 
     </div>
 
 </div>
 
 
+
 <script>
 
-/* =========================================================
+/* =====================================================
    SUPABASE
-========================================================= */
+===================================================== */
 
 const SUPABASE_URL =
     "https://lklrypbwujwncokdvbpi.supabase.co";
 
+
 const SUPABASE_PUBLISHABLE_KEY =
     "sb_publishable_2rRtfSQmA__E3Z6h8FpyYw_lfNh1S_3";
+
 
 const salesSupabase =
     window.supabase.createClient(
@@ -380,9 +394,10 @@ const salesSupabase =
     );
 
 
-/* =========================================================
+
+/* =====================================================
    ՀԻՆ ԱՊՐԱՆՔՆԵՐ
-========================================================= */
+===================================================== */
 
 const defaultProducts = [
 
@@ -426,18 +441,20 @@ const defaultProducts = [
 ];
 
 
-/* =========================================================
+
+/* =====================================================
    VARIABLES
-========================================================= */
+===================================================== */
 
 let products = [];
 
 let editingId = null;
 
 
-/* =========================================================
-   ՕԳՆԱԿԱՆ
-========================================================= */
+
+/* =====================================================
+   ՕԳՆԱԿԱՆ ՖՈՒՆԿՑԻԱՆԵՐ
+===================================================== */
 
 function normalizeName(name) {
 
@@ -478,54 +495,60 @@ function escapeHtml(value) {
 }
 
 
-/* =========================================================
-   ԲՈԼՈՐ ԱՊՐԱՆՔՆԵՐԻ ԲԵՌՆՈՒՄ
-========================================================= */
+
+/* =====================================================
+   ԲԵՌՆԵԼ ԱՊՐԱՆՔՆԵՐ
+===================================================== */
 
 async function loadProducts() {
 
     const list =
         document.getElementById("productList");
 
+
     list.innerHTML =
-        `<div class="loading">Բեռնում...</div>`;
+        `<div class="loading">Ապրանքները բեռնվում են...</div>`;
 
 
-    const { data, error } =
+    const response =
         await salesSupabase
             .from("products")
             .select("*")
             .order("id", { ascending: true });
 
 
-    if (error) {
+    if (response.error) {
 
-        console.error(error);
+        console.error(response.error);
+
 
         list.innerHTML = `
             <div class="error">
-                Չհաջողվեց միանալ ապրանքների բազային։<br><br>
-                ${escapeHtml(error.message)}
+                Չհաջողվեց բեռնել ապրանքները։<br><br>
+                ${escapeHtml(response.error.message)}
             </div>
         `;
 
         return;
+
     }
 
 
-    products = data || [];
+    products =
+        response.data || [];
 
 
     /*
-       Այստեղ ստուգում ենք բոլոր հին ապրանքները։
-       Եթե որևէ մեկը բացակայում է՝ ավելացնում ենք։
+       Ստուգում ենք բոլոր հին ապրանքները։
+       Բացակայողները ավելացվում են։
     */
 
-    const existingNames = new Set(
-        products.map(product =>
-            normalizeName(product.name)
-        )
-    );
+    const existingNames =
+        new Set(
+            products.map(product =>
+                normalizeName(product.name)
+            )
+        );
 
 
     const missingProducts =
@@ -540,58 +563,64 @@ async function loadProducts() {
 
     if (missingProducts.length > 0) {
 
-        const { error: insertError } =
+        const insertResponse =
             await salesSupabase
                 .from("products")
                 .insert(missingProducts);
 
 
-        if (insertError) {
+        if (insertResponse.error) {
 
             console.error(
-                "Missing products error:",
-                insertError
+                insertResponse.error
             );
+
 
             list.innerHTML = `
                 <div class="error">
                     Չհաջողվեց ավելացնել բացակայող ապրանքները։<br><br>
-                    ${escapeHtml(insertError.message)}
+                    ${escapeHtml(
+                        insertResponse.error.message
+                    )}
                 </div>
             `;
 
             return;
+
         }
 
 
         /*
            Նորից բեռնում ենք,
-           որպեսզի նոր ավելացված ապրանքներն էլ լինեն ցուցակում։
+           որպեսզի ցուցակում լինեն նաև նոր ավելացվածները։
         */
 
-        const { data: updatedData, error: reloadError } =
+        const reloadResponse =
             await salesSupabase
                 .from("products")
                 .select("*")
                 .order("id", { ascending: true });
 
 
-        if (reloadError) {
+        if (reloadResponse.error) {
 
-            console.error(reloadError);
+            console.error(
+                reloadResponse.error
+            );
 
             list.innerHTML = `
                 <div class="error">
-                    Չհաջողվեց թարմացնել ապրանքների ցանկը։<br><br>
-                    ${escapeHtml(reloadError.message)}
+                    Չհաջողվեց թարմացնել ապրանքների ցանկը։
                 </div>
             `;
 
             return;
+
         }
 
 
-        products = updatedData || [];
+        products =
+            reloadResponse.data || [];
 
     }
 
@@ -601,14 +630,17 @@ async function loadProducts() {
 }
 
 
-/* =========================================================
-   ԱՊՐԱՆՔՆԵՐԻ MODAL
-========================================================= */
+
+/* =====================================================
+   ԱՊՐԱՆՔՆԵՐԻ ՊԱՏՈՒՀԱՆ
+===================================================== */
 
 function openProducts() {
 
-    document.getElementById("productsModal").style.display =
-        "block";
+    document.getElementById(
+        "productsModal"
+    ).style.display = "block";
+
 
     renderProducts();
 
@@ -617,28 +649,34 @@ function openProducts() {
 
 function closeProducts() {
 
-    document.getElementById("productsModal").style.display =
-        "none";
+    document.getElementById(
+        "productsModal"
+    ).style.display = "none";
+
 
     cancelEdit();
 
 }
 
 
-/* =========================================================
-   ԱՊՐԱՆՔԻ ՊԱՀՊԱՆՈՒՄ
-========================================================= */
+
+/* =====================================================
+   ԱՎԵԼԱՑՆԵԼ / ՓՈՓՈԽԵԼ
+===================================================== */
 
 async function saveProduct() {
 
     const nameInput =
         document.getElementById("productName");
 
+
     const costInput =
         document.getElementById("productCost");
 
+
     const name =
         nameInput.value.trim();
+
 
     const cost =
         Number(costInput.value);
@@ -662,44 +700,47 @@ async function saveProduct() {
     }
 
 
-    const normalized =
-        normalizeName(name);
-
-
     /*
-       Չենք թողնում նույն անունով կրկնվող ապրանք։
+       Ստուգում ենք կրկնությունը։
     */
 
     const duplicate =
         products.find(product => {
 
-            return normalizeName(product.name) === normalized
-                && product.id !== editingId;
+            return normalizeName(product.name) ===
+                normalizeName(name)
+                &&
+                product.id !== editingId;
 
         });
 
 
     if (duplicate) {
 
-        alert("Այս ապրանքն արդեն գրանցված է։");
+        alert(
+            "Այս ապրանքն արդեն գրանցված է։"
+        );
 
         return;
 
     }
 
 
-    const button =
-        document.getElementById("saveProductButton");
+    const saveButton =
+        document.getElementById(
+            "saveProductButton"
+        );
 
-    button.disabled = true;
+
+    saveButton.disabled = true;
 
 
-    let error = null;
+    let response;
 
 
     if (editingId === null) {
 
-        const response =
+        response =
             await salesSupabase
                 .from("products")
                 .insert({
@@ -708,11 +749,9 @@ async function saveProduct() {
                 });
 
 
-        error = response.error;
-
     } else {
 
-        const response =
+        response =
             await salesSupabase
                 .from("products")
                 .update({
@@ -721,22 +760,20 @@ async function saveProduct() {
                 })
                 .eq("id", editingId);
 
-
-        error = response.error;
-
     }
 
 
-    button.disabled = false;
+    saveButton.disabled = false;
 
 
-    if (error) {
+    if (response.error) {
 
-        console.error(error);
+        console.error(response.error);
+
 
         alert(
-            "Չհաջողվեց պահպանել։\n\n" +
-            error.message
+            "Չհաջողվեց պահպանել ապրանքը։\n\n" +
+            response.error.message
         );
 
         return;
@@ -746,114 +783,146 @@ async function saveProduct() {
 
     cancelEdit();
 
+
     await loadProducts();
 
 }
 
 
-/* =========================================================
+
+/* =====================================================
    ՓՈՓՈԽԵԼ
-========================================================= */
+===================================================== */
 
 function editProduct(id) {
 
     const product =
-        products.find(item => item.id === id);
+        products.find(
+            item => item.id === id
+        );
 
 
     if (!product) {
+
         return;
+
     }
 
 
-    document.getElementById("productName").value =
-        product.name;
+    document.getElementById(
+        "productName"
+    ).value = product.name;
 
 
-    document.getElementById("productCost").value =
-        product.cost;
+    document.getElementById(
+        "productCost"
+    ).value = product.cost;
 
 
     editingId = id;
 
 
-    document.getElementById("saveProductButton").textContent =
+    document.getElementById(
+        "saveProductButton"
+    ).textContent =
         "Պահպանել փոփոխությունը";
 
 
-    document.getElementById("cancelEditButton").style.display =
+    document.getElementById(
+        "cancelEditButton"
+    ).style.display =
         "block";
 
 
-    document.getElementById("productName").focus();
+    document.getElementById(
+        "productName"
+    ).focus();
 
 }
 
 
-/* =========================================================
+
+/* =====================================================
    ՉԵՂԱՐԿԵԼ
-========================================================= */
+===================================================== */
 
 function cancelEdit() {
 
     editingId = null;
 
 
-    document.getElementById("productName").value = "";
+    document.getElementById(
+        "productName"
+    ).value = "";
 
-    document.getElementById("productCost").value = "";
+
+    document.getElementById(
+        "productCost"
+    ).value = "";
 
 
-    document.getElementById("saveProductButton").textContent =
+    document.getElementById(
+        "saveProductButton"
+    ).textContent =
         "Պահպանել";
 
 
-    document.getElementById("cancelEditButton").style.display =
+    document.getElementById(
+        "cancelEditButton"
+    ).style.display =
         "none";
 
 }
 
 
-/* =========================================================
+
+/* =====================================================
    ՋՆՋԵԼ
-========================================================= */
+===================================================== */
 
 async function deleteProduct(id) {
 
     const product =
-        products.find(item => item.id === id);
+        products.find(
+            item => item.id === id
+        );
 
 
     if (!product) {
+
         return;
+
     }
 
 
-    if (
-        !confirm(
+    const confirmed =
+        confirm(
             `Ջնջե՞լ «${product.name}» ապրանքը։`
-        )
-    ) {
+        );
+
+
+    if (!confirmed) {
 
         return;
 
     }
 
 
-    const { error } =
+    const response =
         await salesSupabase
             .from("products")
             .delete()
             .eq("id", id);
 
 
-    if (error) {
+    if (response.error) {
 
-        console.error(error);
+        console.error(response.error);
+
 
         alert(
             "Չհաջողվեց ջնջել ապրանքը։\n\n" +
-            error.message
+            response.error.message
         );
 
         return;
@@ -873,20 +942,25 @@ async function deleteProduct(id) {
 }
 
 
-/* =========================================================
+
+/* =====================================================
    ՑՈՒՑԱԿ
-========================================================= */
+===================================================== */
 
 function renderProducts() {
 
     const list =
-        document.getElementById("productList");
+        document.getElementById(
+            "productList"
+        );
 
 
     if (!products.length) {
 
         list.innerHTML =
-            `<div class="loading">Ապրանքներ չկան։</div>`;
+            `<div class="loading">
+                Ապրանքներ չկան։
+            </div>`;
 
         return;
 
@@ -901,7 +975,9 @@ function renderProducts() {
         const item =
             document.createElement("div");
 
-        item.className = "product-item";
+
+        item.className =
+            "product-item";
 
 
         item.innerHTML = `
@@ -929,6 +1005,7 @@ function renderProducts() {
                     Փոխել
                 </button>
 
+
                 <button
                     class="delete-btn"
                     onclick="deleteProduct(${product.id})"
@@ -948,14 +1025,17 @@ function renderProducts() {
 }
 
 
-/* =========================================================
+
+/* =====================================================
    ՎԱՃԱՌՔԻ ՏՈՂԻ ՎԵՐԼՈՒԾՈՒՄ
-========================================================= */
+===================================================== */
 
 function parseSaleLine(line) {
 
     const match =
-        line.match(/^\s*(.*?)\s+([\d\s.,]+)\s*$/);
+        line.match(
+            /^\s*(.*?)\s+([\d\s.,]+)\s*$/
+        );
 
 
     if (!match) {
@@ -981,7 +1061,13 @@ function parseSaleLine(line) {
 
 
     /*
+       Օրինակ՝
+
        3xElfbar 20k 13000
+
+       quantity = 3
+       product = Elfbar 20k
+       sale = 13000
     */
 
     const quantityMatch =
@@ -1023,18 +1109,23 @@ function parseSaleLine(line) {
 }
 
 
-/* =========================================================
-   ՀԱՇՎԱՐԿ
-========================================================= */
+
+/* =====================================================
+   ՀԱՇՎԵԼ
+===================================================== */
 
 function calculateSales() {
 
     const input =
-        document.getElementById("salesInput").value;
+        document.getElementById(
+            "salesInput"
+        ).value;
 
 
     const result =
-        document.getElementById("result");
+        document.getElementById(
+            "result"
+        );
 
 
     result.innerHTML = "";
@@ -1093,10 +1184,15 @@ function calculateSales() {
 
 
         const product =
-            products.find(item => {
+            products.find(product => {
 
-                return normalizeName(item.name) ===
-                    normalizeName(parsed.productName);
+                return normalizeName(
+                    product.name
+                )
+                ===
+                normalizeName(
+                    parsed.productName
+                );
 
             });
 
@@ -1106,7 +1202,9 @@ function calculateSales() {
             html += `
                 <div class="error">
                     Ապրանքը գրանցված չէ՝
-                    ${escapeHtml(parsed.productName)}
+                    ${escapeHtml(
+                        parsed.productName
+                    )}
                 </div>
             `;
 
@@ -1124,7 +1222,8 @@ function calculateSales() {
 
 
         const cost =
-            Number(product.cost) * quantity;
+            Number(product.cost)
+            * quantity;
 
 
         const profit =
@@ -1191,6 +1290,7 @@ function calculateSales() {
                 </strong>
             </div>
 
+
             <div>
                 Ընդհանուր ինքնարժեք՝
                 <strong>
@@ -1198,12 +1298,14 @@ function calculateSales() {
                 </strong>
             </div>
 
+
             <div>
                 Ընդհանուր մաքուր շահույթ՝
                 <strong>
                     ${formatNumber(totalProfit)} ֏
                 </strong>
             </div>
+
 
             <div>
                 Քո կեսը՝
@@ -1222,28 +1324,35 @@ function calculateSales() {
 }
 
 
-/* =========================================================
-   MODAL-ԻՑ ԴՈՒՐՍ ՍԵՂՄԵԼ
-========================================================= */
 
-window.addEventListener("click", function(event) {
+/* =====================================================
+   MODAL
+===================================================== */
 
-    const modal =
-        document.getElementById("productsModal");
+window.addEventListener(
+    "click",
+    function(event) {
+
+        const modal =
+            document.getElementById(
+                "productsModal"
+            );
 
 
-    if (event.target === modal) {
+        if (event.target === modal) {
 
-        closeProducts();
+            closeProducts();
+
+        }
 
     }
+);
 
-});
 
 
-/* =========================================================
+/* =====================================================
    ՍԿԻԶԲ
-========================================================= */
+===================================================== */
 
 document.addEventListener(
     "DOMContentLoaded",
@@ -1258,4 +1367,3 @@ document.addEventListener(
 
 </body>
 </html>
-```
